@@ -7,17 +7,21 @@ import matplotlib
 import matplotlib.font_manager as fm
 
 # =========================================================
-# 0. 한글 폰트 감지 및 Matplotlib 깨짐 방지 (OS 통합 지원)
+# 0. 한글 폰트 감지 및 Matplotlib 깨짐 방지 (OS 및 Cloud 통합 대응)
 # =========================================================
 def init_korean_font():
+    # Windows, Mac, Linux 시스템 대표 한글 폰트 후보군
     font_candidates = ["NanumGothic", "Malgun Gothic", "AppleGothic", "Noto Sans CJK KR"]
     available_fonts = {f.name for f in fm.fontManager.ttflist}
     
     chosen_font = next((f for f in font_candidates if f in available_fonts), None)
     
-    # 리눅스 배포 환경 나눔폰트 경로 탐색
+    # Streamlit Cloud (Linux) 서버 환경용 나눔폰트 경로 직접 탐색
     if not chosen_font:
-        linux_paths = ["/usr/share/fonts/truetype/nanum/NanumGothic.ttf", "/usr/share/fonts/nanum/NanumGothic.ttf"]
+        linux_paths = [
+            "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+            "/usr/share/fonts/nanum/NanumGothic.ttf"
+        ]
         for path in linux_paths:
             if os.path.exists(path):
                 fm.fontManager.addfont(path)
@@ -26,10 +30,13 @@ def init_korean_font():
 
     if chosen_font:
         matplotlib.rcParams["font.family"] = chosen_font
+    
+    # 차트 마이너스(-) 기호 깨짐 방지
     matplotlib.rcParams["axes.unicode_minus"] = False
 
 init_korean_font()
 
+# 백엔드 연산 모듈 로드
 sys.path.insert(0, str(Path(__file__).resolve().parent / "model"))
 import predictor
 
@@ -60,19 +67,19 @@ st.markdown(
 st.title("📊 데이터 기반 학부모 미디어 통제 시뮬레이션 및 AI 코칭")
 st.write(
     "자녀의 미디어 이용 정보를 입력하면 『2024 어린이 미디어 이용조사』 원자료와 대조하여 "
-    "**BART/DART 예측 모형과 SHAP 분석**을 통해 통계적 신뢰 기반의 시뮬레이션을 제공합니다."
+    "**BART/DART 예측 모형과 SHAP 분석**을 통해 동적 맞춤 시뮬레이션을 제공합니다."
 )
 st.caption(
-    "※ 예상 개선 효과 및 신뢰구간은 베이지안 사후분포 연산 결과이며, "
+    "※ 또래 비교는 원자료 기반 기술통계이며, 예상 개선 효과 및 신뢰구간은 베이지안 사후분포 연산 결과입니다. "
     "횡단면 데이터의 특성상 직접적 인과관계가 아닌 통계적 연관성으로 해석되어야 합니다."
 )
 
 RISK_EMOJI = {"상": "🚨", "중": "⚠️", "하": "✅"}
 
 # =========================================================
-# 2. 사용자 입력 폼 (인풋-아웃풋 체계 반영)
+# 2. 사용자 입력 폼 (7단계 흐름 - 1단계)
 # =========================================================
-st.header("1️⃣ 자녀 및 보호자 양육 환경 입력")
+st.header("1️⃣자녀 및 보호자 양육 환경 입력")
 
 with st.form("profile_form"):
     col1, col2 = st.columns(2)
@@ -103,17 +110,19 @@ if submitted:
         "parent_phone_use": 1 if parent_phone == "많음" else 0,
         "restriction_count": restriction,
     }
-    st.session_state.pop("selected_solution", None)
+    st.session_state.pop("selected_solution", None) # 새 진단 시 솔루션 선택 초기화
 
 # =========================================================
-# 3. 결과 대시보드
+# 3. 결과 대시보드 (2~7단계)
 # =========================================================
 if "profile" in st.session_state:
     profile = st.session_state["profile"]
     peer = predictor.peer_comparison(profile)
     pred = predictor.predict_with_ci(profile)
 
-    # 3-1. 또래 집단 비교
+    # -----------------------------------------------------
+    # 3-1. 동일 연령·성별 또래 비교 (2단계)
+    # -----------------------------------------------------
     st.divider()
     st.header("2️⃣ 동일 연령·성별 또래 비교")
     m1, m2, m3, m4 = st.columns(4)
@@ -123,9 +132,11 @@ if "profile" in st.session_state:
     m4.metric(f"{RISK_EMOJI[peer['risk_level']]} 상대적 위험도", peer["risk_level"])
     st.info(f"👨‍👩‍👧 비교 기준: 『2024 어린이 미디어 이용조사』 만 {profile['age']}세 {'남아' if profile['gender_code'] == 1 else '여아'} ({peer['peer_count']:,}명) 원자료")
 
-    # 3-2. 위험도 진단 및 베이지안 Error Bar 시각화
+    # -----------------------------------------------------
+    # 3-2. 위험도 진단 및 베이지안 Error Bar 시각화 (3단계)
+    # -----------------------------------------------------
     st.divider()
-    st.header("3️⃣아동 미디어 이용행동 위험도 진단")
+    st.header("3️⃣ 아동 미디어 이용행동 위험도 진단")
     risk_col, chart_col = st.columns([1, 1.3])
     
     with risk_col:
@@ -150,7 +161,9 @@ if "profile" in st.session_state:
         ax.set_title("BART/DART 예측 위험도 및 95% 베이지안 신뢰구간", fontsize=11)
         st.pyplot(fig)
 
-    # 3-3. SHAP 기반 원인 분석 및 맟춤 코칭
+    # -----------------------------------------------------
+    # 3-3. SHAP 기반 맞춤형 코칭 (4단계)
+-----------------------------------------------
     st.divider()
     st.header("4️⃣ 맞춤형 코칭 — SHAP 기반 원인 분석")
     contributions = predictor.explain_individual(profile)
@@ -171,9 +184,11 @@ if "profile" in st.session_state:
     
     st.caption("※ SHAP 기여도는 머신러닝 예측 메커니즘을 사후적으로 분해한 지표이며, 독립적인 인과관계를 보장하지 않습니다.")
 
-    # 3-4. 맞춤 솔루션 정렬 및 선택 (별표/하이라이트)
+    # -----------------------------------------------------
+    # 3-4. 입력 정보 기반 동적 맞춤 솔루션 추천 (5단계)
+    # -----------------------------------------------------
     st.divider()
-    st.header("5️⃣ 입력 정보 기반 맞춤 솔루션 추천 (신뢰도 순 정렬)")
+    st.header("5️⃣ 입력 정보 기반 맞춤 솔루션 추천 (동적 신뢰도 정렬)")
     solutions = predictor.recommend_solutions(profile, top_n=3)
     sol_cols = st.columns(3)
     
@@ -182,7 +197,7 @@ if "profile" in st.session_state:
             box = st.container(border=True)
             with box:
                 if i == 0:
-                    st.markdown("### ⭐ 최우선 추천 (신뢰도 최고)")
+                    st.markdown("### ⭐ 최우선 추천 (개별 맞춤)")
                 st.markdown(f"#### {sol['label']}")
                 st.write(sol["description"])
                 st.metric("신뢰도 (사후확률)", f"{sol['confidence']*100:.0f}%")
@@ -192,7 +207,9 @@ if "profile" in st.session_state:
     chosen_key = st.selectbox("🧪 시뮬레이션할 솔루션을 선택하세요", options=list(sol_dict.keys()), format_func=lambda k: sol_dict[k])
     st.session_state["selected_solution"] = chosen_key
 
-    # 3-5. 선택 솔루션 시뮬레이션
+    # -----------------------------------------------------
+    # 3-5. 선택 솔루션 적용 시뮬레이션 (6단계)
+    # -----------------------------------------------------
     if "selected_solution" in st.session_state:
         st.divider()
         st.header("6️⃣ 선택 솔루션 적용 시뮬레이션 (불확실성 시각화)")
@@ -202,7 +219,7 @@ if "profile" in st.session_state:
         with sc1:
             st.markdown(f"#### [{chosen['label']}] 적용 시")
             st.metric("위험도 변화", f"{chosen['before_risk']:.1f} → {chosen['after_risk']:.1f}점", delta=f"{-chosen['improvement']:+.1f}점 ({chosen['improvement_pct']:+.1f}%)", delta_color="inverse")
-            st.caption(f"예상 개선 효과: 평균 {chosen['improvement_pct']:+.1f}%, 95% 신뢰구간 {chosen['ci_low']:.1f}~{chosen['ci_high']:.1f}점 (신뢰도 {chosen['confidence']*100:.0f}%)")
+            st.caption(f"예상 개선 효과: 평균 {chosen['improvement_pct']:+.1f}%, 95% 신뢰구간{chosen['ci_low']:.1f}~{chosen['ci_high']:.1f}점 (신뢰도 {chosen['confidence']*100:.0f}%)")
 
         with sc2:
             fig3, ax3 = plt.subplots(figsize=(5, 2.2))
@@ -220,9 +237,11 @@ if "profile" in st.session_state:
             ax3.legend(loc="upper right", fontsize=8)
             st.pyplot(fig3)
 
-        # 3-6. 이번 주 실천 목표
+        # -----------------------------------------------------
+        # 3-6. 이번 주 실천 목표 (7단계)
+        # -----------------------------------------------------
         st.divider()
-        st.header("7️⃣ 이번 주 실천 목표")
+        st.header("7️⃣이번 주 실천 목표")
         st.success(
             f"⭐ **실천 과제**: {chosen['label']}\n\n"
             f"👉 **행동 지침**: {chosen['description']}\n\n"
