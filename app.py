@@ -155,7 +155,7 @@ st.header("1️⃣ 자녀 및 보호자 양육 환경 입력")
 with st.form("profile_form"):
     col1, col2 = st.columns(2)
     with col1:
-        child_age = st.selectbox("자녀의 만 나이", options=list(range(3, 10)), format_func=lambda v: f"점 {v}점")
+        child_age = st.selectbox("자녀의 만 나이", options=list(range(3, 10)), format_func=lambda v: f"만 {v}세")
         child_gender = st.selectbox("자녀의 성별", options=["남아", "여아"])
         daily_time = st.number_input("⏱️ 하루 평균 미디어 이용시간 (시간)", min_value=0.0, max_value=15.0, value=3.0, step=0.5)
         alt_act = st.selectbox("📚 미디어 대체 활동(독서/야외활동 등) 여부", options=["없음", "있음"])
