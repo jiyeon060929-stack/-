@@ -94,97 +94,148 @@ def explain_individual(profile):
     return contributions
 
 def recommend_solutions(profile, top_n=3):
-    """사용자 프로필 기반 6가지 솔루션 풀(Pool) 동적 점수 매칭 및 추천"""
+    """사용자의 실시간 입력 프로필 상태값에 맞춰 솔루션 제목, 처방 사유, 가이드라인을 완전 실시간 생성"""
     curr_risk = predict_with_ci(profile)["risk_score"]
     
-    # 전체 6가지 맞춤 솔루션 풀
-    all_solutions = [
-        {
-            "key": "sol_conflict",
-            "label": "갈등 완화 감정코칭 & 비폭력 대화",
-            "description": "미디어 끌 때의 마찰을 줄이기 위해 아이의 욕구를 먼저 읽어주는 대화법을 적용합니다.",
-            "match_score": profile['conflict_proxy'] * 20 + (5.0 - profile['parent_talk']) * 10,
-            "confidence": 0.94,
-            "improvement": 16.0,
-            "improvement_pct": 20.1
-        },
-        {
-            "key": "sol_timer",
-            "label": "시각적 타이머 & 사전 예고 신호",
-            "description": "시각 타이머로 종료 10분/5분 전 미리 경고하여 자기 조절 타이밍을 예측하도록 돕습니다.",
-            "match_score": (5.0 - profile['self_control']) * 18 + profile['daily_media_hours'] * 5,
-            "confidence": 0.91,
-            "improvement": 14.8,
-            "improvement_pct": 18.5
-        },
-        {
-            "key": "sol_rules",
-            "label": "자녀 참여형 명확한 스크린타임 규칙 설정",
-            "description": "일방적 차단 대신 자녀와 함께 일주일 허용 시간과 장소(식사/침대 제한)를 서약서로 만듭니다.",
-            "match_score": (12 - profile['restriction_count']) * 3 + profile['daily_media_hours'] * 6,
-            "confidence": 0.88,
-            "improvement": 13.5,
-            "improvement_pct": 16.8
-        },
-        {
-            "key": "sol_alt",
-            "label": "대체 여가활동 강화 (독서/야외/보드게임)",
-            "description": "미디어 기기 대신 흥미를 유발할 수 있는 신체 및 주도적 여가 활동을 함께 구성합니다.",
-            "match_score": (1 if profile['alt_activity'] == 0 else 0) * 45 + profile['daily_media_hours'] * 4,
-            "confidence": 0.86,
-            "improvement": 12.0,
-            "improvement_pct": 15.0
-        },
-        {
-            "key": "sol_talk",
-            "label": "시청 후 콘텐츠 소통 및 질문 던지기",
-            "description": "자녀가 좋아하는 유튜브/게임 내용에 대해 질문하고 느낀 점을 주고받는 능동적 대화를 시도합니다.",
-            "match_score": (5.0 - profile['parent_talk']) * 16 + 10,
-            "confidence": 0.83,
-            "improvement": 10.5,
-            "improvement_pct": 13.1
-        },
-        {
-            "key": "sol_modeling",
-            "label": "가족 스마트폰 프리존 & 부모 솔선수범",
-            "description": "식사 시간과 거실 일부를 '스마트폰 없는 구역'으로 정하고 부모부터 스크린타임을 줄입니다.",
-            "match_score": (1 if profile['parent_phone_use'] == 1 else 0) * 40 + 10,
-            "confidence": 0.80,
-            "improvement": 9.2,
-            "improvement_pct": 11.5
-        }
-    ]
-    
-    # 적합도(match_score) 기준 내림차순 정렬
-    all_solutions.sort(key=lambda x: x["match_score"], reverse=True)
-    
-    # 상위 top_n개 추출 및 세부 연산값 반영
+    age = profile['age']
+    gender_str = "남아" if profile['gender_code'] == 1 else "여아"
+    sc = profile['self_control']
+    conflict = profile['conflict_proxy']
+    hours = profile['daily_media_hours']
+    alt = profile['alt_activity']
+    talk = profile['parent_talk']
+    phone = profile['parent_phone_use']
+    rules = profile['restriction_count']
+
+    generated_sols = []
+
+    # 1. 갈등 수준 기반 동적 생성
+    if conflict >= 2.0:
+        severity = "매우 높은" if conflict >= 4.0 else ("높은" if conflict >= 3.0 else "경미한")
+        imp = round(conflict * 3.5 + (5.0 - talk) * 1.2, 1)
+        generated_sols.append({
+            "key": "dynamic_conflict",
+            "priority": conflict * 25 + (5.0 - talk) * 10,
+            "label": f"만 {age}세 {gender_str} 맞춤: 감정 수용형 미디어 대화 코칭",
+            "reason": f"자녀와의 미디어 갈등 지수가 {conflict:.1f}점으로 {severity} 수준입니다.",
+            "description": f"기기를 강제로 뺏기보다 '더 보고 싶어서 아쉽지?'라며 아동의 감정을 인정해 준 뒤 종료 5분 전 합의된 신호를 주는 비폭력 대화법을 실천합니다.",
+            "improvement": imp,
+            "confidence": min(0.96, 0.78 + conflict * 0.04)
+        })
+
+    # 2. 자기조절 점수 기반 동적 생성
+    if sc <= 4.0:
+        age_guided_method = "시각적 모래시계/타이머" if age <= 5 else "스스로 알람을 설정하는 자율 타이머"
+        imp = round((5.0 - sc) * 3.8 + hours * 1.1, 1)
+        generated_sols.append({
+            "key": "dynamic_control",
+            "priority": (5.0 - sc) * 24 + hours * 5,
+            "label": f"자기조절 점수({sc:.1f}점) 극복: {age_guided_method} 훈련",
+            "reason": f"만 {age}세 또래 대비 스스로 조절하는 힘이 약해({sc:.1f}점), 시간 감각을 시각화해 주는 주도적 조절 도구가 필요합니다.",
+            "description": f"{age_guided_method}를 자녀가 직접 조작하게 하여, 미디어가 끝나는 시점을 미리 인지하고 스스로 끌 수 있는 성공 경험을 제공합니다.",
+            "improvement": imp,
+            "confidence": min(0.95, 0.72 + (5.0 - sc) * 0.05)
+        })
+
+    # 3. 하루 이용시간 기반 동적 생성
+    if hours >= 1.5:
+        target_hours = max(1.0, round(hours * 0.6, 1))
+        imp = round(hours * 2.8 + 2.0, 1)
+        generated_sols.append({
+            "key": "dynamic_time",
+            "priority": hours * 20 + (12 - rules) * 3,
+            "label": f"하루 {hours:.1f}시간 시청 감축: 단계적 {target_hours}시간 타깃 설정",
+            "reason": f"하루 평균 미디어 이용시간이 {hours:.1f}시간으로 권장 기준을 초과하여 단계적 감축 목표 설정이 시급합니다.",
+            "description": f"한 번에 끊기보다는 주간 목표를 설정하여 이번 주 하루 {target_hours}시간 이하로 시청 시간을 감축하는 시각적 규칙 표를 작성합니다.",
+            "improvement": imp,
+            "confidence": min(0.93, 0.75 + hours * 0.03)
+        })
+
+    # 4. 대체 활동 유무 기반 동적 생성
+    if alt == 0:
+        age_alt_recs = "신체 놀이 및 감각 자극 교구(블록/그림책)" if age <= 5 else "야외 스포츠, 보드게임 및 창의 만들기 활동"
+        imp = round(hours * 1.8 + 8.5, 1)
+        generated_sols.append({
+            "key": "dynamic_alt",
+            "priority": 90.0 + hours * 3,
+            "label": f"대체 여가 부재 해결: 만 {age}세 맞춤 {age_alt_recs} 도입",
+            "reason": f"현재 미디어를 대체할 여가 활동이 없어 심심함이 기기 몰입으로 바로 직결되고 있습니다.",
+            "description": f"자녀가 흥미를 느낄 만한 {age_alt_recs}을 하교/하원 후 고정 시간대에 보호자와 함께 즐길 수 있도록 세팅합니다.",
+            "improvement": imp,
+            "confidence": 0.91
+        })
+
+    # 5. 부모 스마트폰 사용 습관 기반 동적 생성
+    if phone == 1:
+        imp = round(14.0 + (5.0 - sc) * 1.2, 1)
+        generated_sols.append({
+            "key": "dynamic_modeling",
+            "priority": 88.0 + (5.0 - sc) * 4,
+            "label": "보호자 솔선수범: 가정 내 '스마트폰 프리존(Zone)' 지정",
+            "reason": "보호자의 자녀 앞 스마트폰 노출도가 높아 아동의 미디어 관성 자극 및 전이 효과가 크게 발생하고 있습니다.",
+            "description": "식사 공간과 침실을 스마트폰 금지 구역으로 정하고, 보호자가 먼저 기기를 거실 보관함에 넣는 모범적인 양육 환경을 만듭니다.",
+            "improvement": imp,
+            "confidence": 0.89
+        })
+
+    # 6. 부모 대화 정도 기반 동적 생성
+    if talk < 4.0:
+        imp = round((5.0 - talk) * 3.2 + 2.5, 1)
+        generated_sols.append({
+            "key": "dynamic_talk",
+            "priority": (5.0 - talk) * 18 + 15,
+            "label": f"상호작용 대화({talk:.1f}점) 증진: 시청 후 능동적 3질문 코칭",
+            "reason": f"미디어 시청 후 대화 수준이 {talk:.1f}점으로 낮아 아동이 콘텐츠를 수동적으로 소비하고 있습니다.",
+            "description": "시청 후 '오늘 주인공이 왜 그런 행동을 했을까?', '어떤 장면이 제일 재미있었어?' 등의 3가지 질문을 던져 능동적 사고를 유도합니다.",
+            "improvement": imp,
+            "confidence": 0.83
+        })
+
+    # 7. 지도 규칙 수 기반 동적 생성
+    if rules < 5:
+        imp = round((8 - rules) * 1.8 + 4.0, 1)
+        generated_sols.append({
+            "key": "dynamic_rules",
+            "priority": (12 - rules) * 10 + hours * 2,
+            "label": f"지도 규칙({rules}개) 보완: 아동과 함께 작성하는 미디어 서약서",
+            "reason": f"현재 적용 중인 제한 규칙이 {rules}개로 부족하여 기기 이용 경계가 불명확한 상태입니다.",
+            "description": "아동이 직접 규칙 작성에 동참하게 하여 '스스로 정한 규칙'이라는 책임감을 부여하고 거실 눈에 띄는 곳에 서약서를 붙여둡니다.",
+            "improvement": imp,
+            "confidence": 0.85
+        })
+
+    # 정렬 및 최상위 추천 추출
+    generated_sols.sort(key=lambda x: x["priority"], reverse=True)
+
     recommended = []
-    for sol in all_solutions[:top_n]:
+    for sol in generated_sols[:top_n]:
         after_risk = max(5.0, curr_risk - sol["improvement"])
-        sol_data = {
+        improvement_pct = round((sol["improvement"] / curr_risk) * 100, 1) if curr_risk > 0 else 0.0
+        
+        recommended.append({
             "key": sol["key"],
             "label": sol["label"],
             "description": sol["description"],
+            "reason": sol["reason"],
             "confidence": sol["confidence"],
             "improvement": sol["improvement"],
-            "improvement_pct": sol["improvement_pct"],
+            "improvement_pct": improvement_pct,
             "after_risk": after_risk,
             "ci_low": max(0.0, after_risk - 4.0),
             "ci_high": min(100.0, after_risk + 4.5)
-        }
-        recommended.append(sol_data)
-        
+        })
+
     return recommended
 
 def simulate_solution(profile, sol_key):
     curr_risk = predict_with_ci(profile)["risk_score"]
-    sols = recommend_solutions(profile, top_n=6) # 전체 솔루션 검색
+    sols = recommend_solutions(profile, top_n=7)
     sol = next((s for s in sols if s["key"] == sol_key), sols[0])
     
     return {
         "label": sol["label"],
         "description": sol["description"],
+        "reason": sol["reason"],
         "before_risk": curr_risk,
         "after_risk": sol["after_risk"],
         "improvement": sol["improvement"],
