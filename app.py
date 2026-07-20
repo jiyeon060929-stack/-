@@ -163,7 +163,7 @@ if "profile" in st.session_state:
 
     # -----------------------------------------------------
     # 3-3. SHAP 기반 맞춤형 코칭 (4단계)
------------------------------------------------
+    #-----------------------------------------------
     st.divider()
     st.header("4️⃣ 맞춤형 코칭 — SHAP 기반 원인 분석")
     contributions = predictor.explain_individual(profile)
