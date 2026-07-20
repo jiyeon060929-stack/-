@@ -5,6 +5,28 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.font_manager as fm
+import streamlit as st
+
+# =========================================================
+# 카카오톡 / SNS 링크 공유 미리보기(Open Graph) 설정
+# =========================================================
+st.set_page_config(
+    page_title="AI 기반 아동 미디어 코칭 대시보드",
+    page_icon="📊",
+    layout="wide"
+)
+
+# 링크 카카오톡 공유 시 제목 및 설명 세팅
+st.markdown(
+    """
+    <head>
+        <meta property="og:title" content="AI 기반 아동 미디어 코칭 대시보드" />
+        <meta property="og:description" content="데이터 기반 학부모 미디어 통제 시뮬레이션 및 맞춤형 AI 코칭 서비스" />
+        <meta property="og:type" content="website" />
+    </head>
+    """,
+    unsafe_allow_html=True
+)
 
 # =========================================================
 # 0. 한글 폰트 감지 및 Matplotlib 깨짐 방지
