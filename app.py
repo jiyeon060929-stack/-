@@ -47,19 +47,76 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    html, body, [class*="css"] { font-size: 19px !important; }
-    h1 { font-size: 2.2rem !important; color: #1E3A8A; }
-    h2 { font-size: 1.7rem !important; border-bottom: 2px solid #E5E7EB; padding-bottom: 8px; }
-    h3 { font-size: 1.4rem !important; }
-    div[data-testid="stMetricValue"] { font-size: 2.0rem !important; font-weight: bold; }
-    div[data-testid="stMetricLabel"] { font-size: 1.1rem !important; }
-    .stButton button { font-size: 1.2rem !important; font-weight: bold; padding: 0.7rem 1.2rem; }
-    .reason-box { background-color: #F0FDF4; border-left: 4px solid #10B981; padding: 10px; font-size: 0.95rem; margin-bottom: 10px; border-radius: 4px; }
+    /* 전체 배경색 깔끔한 연회색으로 변경 */
+    .stApp {
+        background-color: #F8FAFC;
+    }
+    
+    /* 상단 블루 그라데이션 메인 배너 */
+    .hero-banner {
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+        padding: 28px 36px;
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 20px rgba(30, 58, 138, 0.12);
+    }
+    .hero-banner h1 {
+        color: #FFFFFF !important;
+        font-size: 2.1rem !important;
+        font-weight: 800 !important;
+        margin-bottom: 6px !important;
+    }
+    .hero-banner p {
+        font-size: 1.05rem;
+        color: #E0E7FF;
+        margin-bottom: 0;
+    }
+
+    /* 카드 입체감 (Box Shadow & 모서리 라운딩) */
+    .stContainer, div[data-testid="stForm"] {
+        background-color: #FFFFFF;
+        border-radius: 14px !important;
+        padding: 20px !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* 주요 섹션 제목 스타일 */
+    h2 {
+        font-size: 1.5rem !important;
+        color: #0F172A !important;
+        font-weight: 700 !important;
+        padding-bottom: 8px;
+    }
+
+    /* 숫자 강조 Metric 스타일 */
+    div[data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+        font-weight: 800 !important;
+        color: #1E293B;
+    }
+    
+    /* 제출 및 실행 버튼 커스텀 */
+    .stButton > button {
+        background: linear-gradient(90deg, #2563EB 0%, #1D4ED8 100%);
+        color: white !important;
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        padding: 10px 20px !important;
+        border: none !important;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    }
     </style>
+    
+    <div class="hero-banner">
+        <h1>📊 AI 기반 아동 미디어 코칭 대시보드</h1>
+        <p>『2024 어린이 미디어 이용조사』 원자료 및 BART/DART 예측 모델 기반 동적 시뮬레이션</p>
+    </div>
     """,
     unsafe_allow_html=True,
 )
-
 st.title("📊 데이터 기반 학부모 미디어 통제 시뮬레이션 및 AI 코칭")
 st.write(
     "자녀의 미디어 이용 정보를 입력하면 『2024 어린이 미디어 이용조사』 원자료와 대조하여 "
