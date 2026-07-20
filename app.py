@@ -199,6 +199,7 @@ if "profile" in st.session_state:
                 if i == 0:
                     st.markdown("### ⭐ 최우선 추천 (개별 맞춤)")
                 st.markdown(f"#### {sol['label']}")
+                st.markdown(f"<div class='reason-box'>💡 <b>맞춤 처방 사유 </b><br>{sol['reason']}</div>", unsafe_allow_html=True)
                 st.write(sol["description"])
                 st.metric("신뢰도 (사후확률)", f"{sol['confidence']*100:.0f}%")
                 st.metric("예상 위험도 변화", f"{sol['after_risk']:.1f}점", delta=f"{-sol['improvement']:+.1f}점 ({sol['improvement_pct']:+.1f}%)", delta_color="inverse")
@@ -218,6 +219,7 @@ if "profile" in st.session_state:
         
         with sc1:
             st.markdown(f"#### [{chosen['label']}] 적용 시")
+            st.write(f"📌 **처방 근거**: {chosen['reason']}")
             st.metric("위험도 변화", f"{chosen['before_risk']:.1f} → {chosen['after_risk']:.1f}점", delta=f"{-chosen['improvement']:+.1f}점 ({chosen['improvement_pct']:+.1f}%)", delta_color="inverse")
             st.caption(f"예상 개선 효과: 평균 {chosen['improvement_pct']:+.1f}%, 95% 신뢰구간{chosen['ci_low']:.1f}~{chosen['ci_high']:.1f}점 (신뢰도 {chosen['confidence']*100:.0f}%)")
 
