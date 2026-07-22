@@ -224,7 +224,7 @@ if "profile" in st.session_state:
         ax.set_yticks([])
         ax.set_xlabel("위험도 점수 (0~100)")
         ax.legend(loc="upper right", fontsize=8)
-        ax.set_title("예측 위험도 및 95% 신뢰구간 (Error Bar)", fontsize=11)
+        ax.set_title("또래비교 자녀 예측 위험도 (95% 신뢰구간 내)", fontsize=11)
         st.pyplot(fig)
 
     # 3-3. SHAP 원인 분석
