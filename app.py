@@ -208,7 +208,7 @@ if "profile" in st.session_state:
     with risk_col:
         st.markdown(f"## {RISK_EMOJI[peer['risk_level']]} 위험 등급: **{peer['risk_level']}**")
         st.markdown(f"### **{pred['risk_score']:.1f}점** / 100점")
-        st.caption(f"95% 베이지안 신뢰구간: {pred['ci_low']:.1f}점 ~ {pred['ci_high']:.1f}점")
+        st.caption(f"95% 신뢰구간: {pred['ci_low']:.1f}점 ~ {pred['ci_high']:.1f}점")
         st.progress(min(int(pred["risk_score"]), 100))
         st.write(peer["risk_text"])
 
@@ -224,7 +224,7 @@ if "profile" in st.session_state:
         ax.set_yticks([])
         ax.set_xlabel("위험도 점수 (0~100)")
         ax.legend(loc="upper right", fontsize=8)
-        ax.set_title("BART/DART 예측 위험도 및 95% 베이지안 신뢰구간", fontsize=11)
+        ax.set_title("예측 위험도 및 95% 신뢰구간 (Error Bar)", fontsize=11)
         st.pyplot(fig)
 
     # 3-3. SHAP 원인 분석
